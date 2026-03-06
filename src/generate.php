@@ -12,6 +12,8 @@ define ("TEMPLATE_FOLDER",
     __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR);
 define ("OUTPUT_FOLDER", __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'html' . DIRECTORY_SEPARATOR);
 define ("SITEMAP_URL", "https://help.adam.co.za/");
+define ("IMAGE_FOLDER", OUTPUT_FOLDER . 'images' . DIRECTORY_SEPARATOR);
+define ("IMAGE_RELATIVE_PATH", 'images/'); // For the HTML src attribute
 
 $html = file_get_contents (DOCUMENTATION_URL);
 if ($html === false)
@@ -26,6 +28,8 @@ if ($dom->loadHTML ('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOWARNING | LIBX
     echo "Could not parse HTML. Aborting.";
     exit ();
 }
+
+sideloadImages($dom);
 
 file_put_contents (OUTPUT_FOLDER . "full.html", $dom->saveHTML ());
 
@@ -216,23 +220,28 @@ function relink ($html)
 
 function imageFix ($html)
 {
+    if (empty($html)) return '';
     $dom = new DOMDocument();
-    $dom->loadHTML ('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
+    // Use encoding to prevent character issues
+    @$dom->loadHTML ('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
 
     $xPath = new DOMXPath ($dom);
-    $images = $xPath->query ('//p/span/img');
-    /** @var DOMNode $image */
+    $images = $xPath->query ('//img'); // Simplified query to catch all images
+
     foreach ($images as $image)
     {
-        $image->setAttribute ("style", "max-width:100%;");
-        $style = $image->parentNode->attributes->getNamedItem ("style")->nodeValue;
-        $style = preg_replace ("/(width|height): [0-9.]+px;/", "", $style);
-        $image->parentNode->setAttribute ("style", $style);
+        $image->setAttribute ("style", "max-width:100%; height:auto;");
 
+        // Clean up parent span styles if they exist (Google adds fixed widths there)
+        if ($image->parentNode && $image->parentNode->nodeName == 'span') {
+            $parentStyle = $image->parentNode->getAttribute("style");
+            $parentStyle = preg_replace ("/(width|height): [0-9.]+px;/", "", $parentStyle);
+            $image->parentNode->setAttribute ("style", $parentStyle);
+        }
     }
-    return $dom->saveHTML ();
+    // Return only the body content to avoid nested <html> tags
+    return preg_replace('/^<!DOCTYPE.+?>/', '', str_replace( array('<html>', '</html>', '<body>', '</body>'), array('', '', '', ''), $dom->saveHTML()));
 }
-
 function getMenuStructure ($outline, $current, $level = 1)
 {
     if ($level > 3)
@@ -267,4 +276,37 @@ function getMenuStructure ($outline, $current, $level = 1)
 function sanitiseTextForLink ($text)
 {
     return strtolower (str_replace ('--', '-', str_replace (' ', '-', preg_replace ('/[^a-zA-Z0-9 ]/', '', $text))));
+}
+
+function sideloadImages(&$dom) {
+    if (!is_dir(IMAGE_FOLDER)) {
+        mkdir(IMAGE_FOLDER, 0755, true);
+    }
+
+    $images = $dom->getElementsByTagName('img');
+    foreach ($images as $img) {
+        $oldSrc = $img->getAttribute('src');
+
+        // Skip empty or already processed images
+        if (empty($oldSrc) || strpos($oldSrc, IMAGE_RELATIVE_PATH) === 0) continue;
+
+        // Generate a unique filename (MD5 hash of the URL is safest)
+        $filename = md5($oldSrc) . '.png';
+        $savePath = IMAGE_FOLDER . $filename;
+
+        // Only download if we don't have it locally already
+        if (!file_exists($savePath)) {
+            // Use a basic stream context to mimic a browser if Google blocks simple file_get_contents
+            $options = ["http" => ["header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"]];
+            $context = stream_context_create($options);
+            $imgData = @file_get_contents($oldSrc, false, $context);
+
+            if ($imgData) {
+                file_put_contents($savePath, $imgData);
+            }
+        }
+
+        // Update the DOM to point to the local file
+        $img->setAttribute('src', IMAGE_RELATIVE_PATH . $filename);
+    }
 }
