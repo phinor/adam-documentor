@@ -14,12 +14,11 @@ $dotenv->required (['DOCUMENTATION_URL', 'SITEMAP_URL'])->notEmpty ();
 
 define ("DOCUMENTATION_URL", $_ENV ['DOCUMENTATION_URL']);
 define ("SITEMAP_URL", $_ENV ['SITEMAP_URL']);
-define ("TEMPLATE_FOLDER",
-    __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR);
-define ("OUTPUT_FOLDER", __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'html' . DIRECTORY_SEPARATOR);
-define ("IMAGE_FOLDER", OUTPUT_FOLDER . 'images' . DIRECTORY_SEPARATOR);
-define ("IMAGE_RELATIVE_PATH", 'images/'); // For the HTML src attribute
-define ("LOG_FILE", OUTPUT_FOLDER . 'generate.log');
+const TEMPLATE_FOLDER = __DIR__ . '/../template' . DIRECTORY_SEPARATOR;
+const OUTPUT_FOLDER = __DIR__ . '/../html' . DIRECTORY_SEPARATOR;
+const IMAGE_RELATIVE_PATH = 'images/'; // For the HTML src attribute
+const IMAGE_FOLDER = OUTPUT_FOLDER . IMAGE_RELATIVE_PATH;
+const LOG_FILE = OUTPUT_FOLDER . 'generate.log';
 
 // Track files produced this run so we can sweep stale ones at the end.
 $writtenImages = [];
@@ -50,7 +49,7 @@ $xPath = new DOMXPath ($dom);
 
 $style = $xPath->query ('/html/body/div[@id="contents"]/style')
                ->item (0)->nodeValue;
-$style = preg_replace ('/line\-height\s*:\s*[0-9\.]+;/s', '', $style);
+$style = preg_replace ('/line-height\s*:\s*[0-9.]+;/s', '', $style);
 $styleHash = md5 ($style);
 file_put_contents (OUTPUT_FOLDER . 'default.css', $style);
 

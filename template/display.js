@@ -14,6 +14,19 @@ $(document).ready(function() {
     $('nav .menu3 a[href*="' + pageURL + '"]').closest('ul').addClass('selected');
     $('nav').scrollTo('.menu1 > li.selected');
 
+    $('#navtoggle').on('click', function() {
+        var $nav = $('nav');
+        var isOpen = $nav.toggleClass('open').hasClass('open');
+        $(this).attr('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    // On mobile, an anchor link within the current page doesn't reload, so
+    // close the overlay so the user can actually see the section.
+    $('nav a').on('click', function() {
+        $('nav').removeClass('open');
+        $('#navtoggle').attr('aria-expanded', 'false');
+    });
+
     // $('#search form').on('submit', function (e){
     //     $('#search input[name=q]').val($('#searchinput').val() + " site:help.adam.co.za");
     //     $('article').innerHTML = '';
