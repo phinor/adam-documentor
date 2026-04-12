@@ -117,8 +117,6 @@ foreach ($nodes as $node)
     }
 }
 
-$menu = getMenuStructure ($outline, "");
-
 $sitemap = [];
 $template = file_get_contents (TEMPLATE_FOLDER . 'template.html');
 
@@ -138,6 +136,7 @@ foreach ($outline as $h1 => $content)
 {
     $filename = $outline [$h1] ['newlink'];
     $sitemap [] = SITEMAP_URL . $filename;
+    $menu = getMenuStructure ($outline, $h1);
     $html = str_replace ("#title", $outline [$h1] ['heading'], $template);
     $html = str_replace ("#cssfile", "default.css?{$styleHash}", $html);
     $html = str_replace ("#templatecss", "custom.css?{$templateCssHash}", $html);
@@ -316,6 +315,12 @@ function getMenuStructure ($outline, $current, $level = 1)
         }
         if (is_array ($outline [$heading1]))
         {
+            // At the top level, only expand the sub-menu under the current
+            // page's h1 — other h1s get just their top-level link.
+            if ($level === 1 && $heading1 !== $current)
+            {
+                continue;
+            }
             $menu .= getMenuStructure ($details, $current, $level + 1);
         }
     }
