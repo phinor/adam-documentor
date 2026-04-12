@@ -41,7 +41,7 @@ if ($dom->loadHTML ('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOWARNING | LIBX
     exit ();
 }
 
-sideloadImages($dom);
+sideloadImages ($dom);
 
 file_put_contents (OUTPUT_FOLDER . "full.html", $dom->saveHTML ());
 
@@ -65,7 +65,7 @@ $h3id = null;
 $h1 = $xPath->query ('//h1');
 
 /* @var DOMNode[] $nodes */
-$nodes = $h1->item(0)->parentNode->childNodes;
+$nodes = $h1->item (0)->parentNode->childNodes;
 
 foreach ($nodes as $node)
 {
@@ -150,7 +150,7 @@ foreach ($outline as $h1 => $content)
     {
         $content .= relink ($htmlSnip);
     }
-    foreach ($outline [$h1] as $h2 => $subheadings)
+    foreach (array_keys ($outline [$h1]) as $h2)
     {
         if (substr ($h2, 0, 2) == 'h.')
         {
@@ -159,7 +159,7 @@ foreach ($outline as $h1 => $content)
             {
                 $content .= relink ($htmlSnip);
             }
-            foreach ($outline [$h1] [$h2] as $h3 => $subheadings)
+            foreach (array_keys ($outline [$h1] [$h2]) as $h3)
             {
                 if (substr ($h3, 0, 2) == 'h.')
                 {
@@ -199,12 +199,27 @@ Sitemap: " . SITEMAP_URL . "sitemap.txt");
 $protectedHtml = ['full.html' => true];
 foreach (scandir (OUTPUT_FOLDER) as $file)
 {
-    if ($file === '.' || $file === '..') continue;
+    if ($file === '.' || $file === '..')
+    {
+        continue;
+    }
     $path = OUTPUT_FOLDER . $file;
-    if (!is_file ($path)) continue;
-    if (substr ($file, -5) !== '.html') continue;
-    if (isset ($protectedHtml [$file])) continue;
-    if (isset ($writtenHtml [$file])) continue;
+    if (!is_file ($path))
+    {
+        continue;
+    }
+    if (substr ($file, -5) !== '.html')
+    {
+        continue;
+    }
+    if (isset ($protectedHtml [$file]))
+    {
+        continue;
+    }
+    if (isset ($writtenHtml [$file]))
+    {
+        continue;
+    }
     if (unlink ($path))
     {
         $htmlStats ['deleted']++;
@@ -213,10 +228,19 @@ foreach (scandir (OUTPUT_FOLDER) as $file)
 
 foreach (scandir (IMAGE_FOLDER) as $file)
 {
-    if ($file === '.' || $file === '..') continue;
+    if ($file === '.' || $file === '..')
+    {
+        continue;
+    }
     $path = IMAGE_FOLDER . $file;
-    if (!is_file ($path)) continue;
-    if (isset ($writtenImages [$file])) continue;
+    if (!is_file ($path))
+    {
+        continue;
+    }
+    if (isset ($writtenImages [$file]))
+    {
+        continue;
+    }
     if (unlink ($path))
     {
         $imageStats ['deleted']++;
@@ -270,7 +294,7 @@ function relink ($html)
         $html, $matches);
     foreach ($matches [0] as $key => $match)
     {
-        if (isset ($matches ['code'] [$key]) && !empty ($matches ['code'] [$key]))
+        if (!empty ($matches ['code'] [$key]))
         {
             $html = "<iframe width=\"640\" height=\"360\" src=\"https://www.youtube.com/embed/{$matches ['code'] [$key]}\" frameborder=\"0\" allow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
         }
@@ -281,7 +305,10 @@ function relink ($html)
 
 function imageFix ($html)
 {
-    if (empty($html)) return '';
+    if (empty($html))
+    {
+        return '';
+    }
     $dom = new DOMDocument();
     // Use encoding to prevent character issues
     @$dom->loadHTML ('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
@@ -291,18 +318,23 @@ function imageFix ($html)
 
     foreach ($images as $image)
     {
-        $image->setAttribute ("style", "max-width:100%; height:auto;");
+        $image->setAttribute ("style", "max-width:100%; height:auto;border: 1px solid #535353;");
 
         // Clean up parent span styles if they exist (Google adds fixed widths there)
-        if ($image->parentNode && $image->parentNode->nodeName == 'span') {
-            $parentStyle = $image->parentNode->getAttribute("style");
+        if ($image->parentNode && $image->parentNode->nodeName == 'span')
+        {
+            $parentStyle = $image->parentNode->getAttribute ("style");
             $parentStyle = preg_replace ("/(width|height): [0-9.]+px;/", "", $parentStyle);
+            $parentStyle = preg_replace ("/border:[^;]+;/", "", $parentStyle);
+            $parentStyle = preg_replace ("/overflow:\\s?hidden;/", "", $parentStyle);
             $image->parentNode->setAttribute ("style", $parentStyle);
         }
     }
     // Return only the body content to avoid nested <html> tags
-    return preg_replace('/^<!DOCTYPE.+?>/', '', str_replace( array('<html>', '</html>', '<body>', '</body>'), array('', '', '', ''), $dom->saveHTML()));
+    return preg_replace ('/^<!DOCTYPE.+?>/', '',
+        str_replace (['<html>', '</html>', '<body>', '</body>'], ['', '', '', ''], $dom->saveHTML ()));
 }
+
 function getMenuStructure ($outline, $current, $level = 1)
 {
     if ($level > 3)
@@ -345,46 +377,61 @@ function sanitiseTextForLink ($text)
     return strtolower (str_replace ('--', '-', str_replace (' ', '-', preg_replace ('/[^a-zA-Z0-9 ]/', '', $text))));
 }
 
-function sideloadImages(&$dom) {
+function sideloadImages (&$dom)
+{
     global $writtenImages, $imageStats;
 
-    if (!is_dir(IMAGE_FOLDER)) {
-        mkdir(IMAGE_FOLDER, 0755, true);
+    if (!is_dir (IMAGE_FOLDER))
+    {
+        mkdir (IMAGE_FOLDER, 0755, true);
     }
 
-    $images = $dom->getElementsByTagName('img');
-    foreach ($images as $img) {
-        $oldSrc = $img->getAttribute('src');
+    $images = $dom->getElementsByTagName ('img');
+    foreach ($images as $img)
+    {
+        $oldSrc = $img->getAttribute ('src');
 
         // Skip empty or already processed images
-        if (empty($oldSrc) || strpos($oldSrc, IMAGE_RELATIVE_PATH) === 0) continue;
+        if (empty($oldSrc) || strpos ($oldSrc, IMAGE_RELATIVE_PATH) === 0)
+        {
+            continue;
+        }
 
         // Hash the URL path only (without query string) so rotating ?key= values
         // don't defeat deduplication. Falls back to full URL if parsing fails.
-        $hashInput = parse_url($oldSrc, PHP_URL_PATH);
-        if (empty($hashInput)) $hashInput = $oldSrc;
-        $filename = md5($hashInput) . '.png';
+        $hashInput = parse_url ($oldSrc, PHP_URL_PATH);
+        if (empty($hashInput))
+        {
+            $hashInput = $oldSrc;
+        }
+        $filename = md5 ($hashInput) . '.png';
         $savePath = IMAGE_FOLDER . $filename;
 
-        if (file_exists($savePath)) {
+        if (file_exists ($savePath))
+        {
             $imageStats['existing']++;
             $writtenImages[$filename] = true;
-        } else {
+        }
+        else
+        {
             // Use a basic stream context to mimic a browser if Google blocks simple file_get_contents
             $options = ["http" => ["header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"]];
-            $context = stream_context_create($options);
-            $imgData = @file_get_contents($oldSrc, false, $context);
+            $context = stream_context_create ($options);
+            $imgData = @file_get_contents ($oldSrc, false, $context);
 
-            if ($imgData) {
-                file_put_contents($savePath, $imgData);
+            if ($imgData)
+            {
+                file_put_contents ($savePath, $imgData);
                 $imageStats['new']++;
                 $writtenImages[$filename] = true;
-            } else {
+            }
+            else
+            {
                 $imageStats['failed']++;
             }
         }
 
         // Update the DOM to point to the local file
-        $img->setAttribute('src', IMAGE_RELATIVE_PATH . $filename);
+        $img->setAttribute ('src', IMAGE_RELATIVE_PATH . $filename);
     }
 }
