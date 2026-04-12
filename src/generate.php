@@ -6,12 +6,17 @@
  * and open the template in the editor.
  */
 
-define ("DOCUMENTATION_URL",
-    "https://docs.google.com/document/d/e/2PACX-1vTD048j2WkcCJYgH3lxyNybc7vRr3gyxEXbSTocyNxmtj3eozNwLXlNFitLpHKA8ZV7L-W10LockjdP/pub");
+require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+
+$dotenv = Dotenv\Dotenv::createImmutable (__DIR__ . DIRECTORY_SEPARATOR . '..');
+$dotenv->load ();
+$dotenv->required (['DOCUMENTATION_URL', 'SITEMAP_URL'])->notEmpty ();
+
+define ("DOCUMENTATION_URL", $_ENV ['DOCUMENTATION_URL']);
+define ("SITEMAP_URL", $_ENV ['SITEMAP_URL']);
 define ("TEMPLATE_FOLDER",
     __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR);
 define ("OUTPUT_FOLDER", __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'html' . DIRECTORY_SEPARATOR);
-define ("SITEMAP_URL", "https://help.adam.co.za/");
 define ("IMAGE_FOLDER", OUTPUT_FOLDER . 'images' . DIRECTORY_SEPARATOR);
 define ("IMAGE_RELATIVE_PATH", 'images/'); // For the HTML src attribute
 define ("LOG_FILE", OUTPUT_FOLDER . 'generate.log');
