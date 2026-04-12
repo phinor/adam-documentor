@@ -14,6 +14,14 @@ define ("OUTPUT_FOLDER", __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARA
 define ("SITEMAP_URL", "https://help.adam.co.za/");
 define ("IMAGE_FOLDER", OUTPUT_FOLDER . 'images' . DIRECTORY_SEPARATOR);
 define ("IMAGE_RELATIVE_PATH", 'images/'); // For the HTML src attribute
+define ("LOG_FILE", OUTPUT_FOLDER . 'generate.log');
+
+// Track files produced this run so we can sweep stale ones at the end.
+$writtenImages = [];
+$writtenHtml = [];
+$imageStats = ['new' => 0, 'existing' => 0, 'failed' => 0, 'deleted' => 0];
+$htmlStats = ['written' => 0, 'deleted' => 0];
+$runStart = microtime (true);
 
 $html = file_get_contents (DOCUMENTATION_URL);
 if ($html === false)
@@ -168,6 +176,8 @@ foreach ($outline as $h1 => $content)
     $file = fopen (OUTPUT_FOLDER . $filename, "w");
     fwrite ($file, $html);
     fclose ($file);
+    $writtenHtml [$filename] = true;
+    $htmlStats ['written']++;
 }
 
 copy (TEMPLATE_FOLDER . 'custom.css', OUTPUT_FOLDER . 'custom.css');
@@ -179,6 +189,54 @@ file_put_contents (OUTPUT_FOLDER . "sitemap.txt", implode ("\n", $sitemap));
 file_put_contents (OUTPUT_FOLDER . "robots.txt", "User-agent: *
 Allow: *
 Sitemap: " . SITEMAP_URL . "sitemap.txt");
+
+// Sweep stale files. Delete any .html in OUTPUT_FOLDER we didn't write this run,
+// and any image in IMAGE_FOLDER we didn't touch. Template assets and the log
+// file are preserved explicitly.
+$protectedHtml = ['full.html' => true];
+foreach (scandir (OUTPUT_FOLDER) as $file)
+{
+    if ($file === '.' || $file === '..') continue;
+    $path = OUTPUT_FOLDER . $file;
+    if (!is_file ($path)) continue;
+    if (substr ($file, -5) !== '.html') continue;
+    if (isset ($protectedHtml [$file])) continue;
+    if (isset ($writtenHtml [$file])) continue;
+    if (unlink ($path))
+    {
+        $htmlStats ['deleted']++;
+    }
+}
+
+foreach (scandir (IMAGE_FOLDER) as $file)
+{
+    if ($file === '.' || $file === '..') continue;
+    $path = IMAGE_FOLDER . $file;
+    if (!is_file ($path)) continue;
+    if (isset ($writtenImages [$file])) continue;
+    if (unlink ($path))
+    {
+        $imageStats ['deleted']++;
+    }
+}
+
+$duration = round (microtime (true) - $runStart, 2);
+$logLines = [
+    "Generation run: " . date ('Y-m-d H:i:s'),
+    "Duration: {$duration}s",
+    "",
+    "Images:",
+    "  New downloads:     {$imageStats ['new']}",
+    "  Existing (reused): {$imageStats ['existing']}",
+    "  Failed downloads:  {$imageStats ['failed']}",
+    "  Deleted (stale):   {$imageStats ['deleted']}",
+    "",
+    "HTML pages:",
+    "  Written:           {$htmlStats ['written']}",
+    "  Deleted (stale):   {$htmlStats ['deleted']}",
+    "",
+];
+file_put_contents (LOG_FILE, implode ("\n", $logLines));
 
 function relink ($html)
 {
@@ -279,6 +337,8 @@ function sanitiseTextForLink ($text)
 }
 
 function sideloadImages(&$dom) {
+    global $writtenImages, $imageStats;
+
     if (!is_dir(IMAGE_FOLDER)) {
         mkdir(IMAGE_FOLDER, 0755, true);
     }
@@ -290,12 +350,17 @@ function sideloadImages(&$dom) {
         // Skip empty or already processed images
         if (empty($oldSrc) || strpos($oldSrc, IMAGE_RELATIVE_PATH) === 0) continue;
 
-        // Generate a unique filename (MD5 hash of the URL is safest)
-        $filename = md5($oldSrc) . '.png';
+        // Hash the URL path only (without query string) so rotating ?key= values
+        // don't defeat deduplication. Falls back to full URL if parsing fails.
+        $hashInput = parse_url($oldSrc, PHP_URL_PATH);
+        if (empty($hashInput)) $hashInput = $oldSrc;
+        $filename = md5($hashInput) . '.png';
         $savePath = IMAGE_FOLDER . $filename;
 
-        // Only download if we don't have it locally already
-        if (!file_exists($savePath)) {
+        if (file_exists($savePath)) {
+            $imageStats['existing']++;
+            $writtenImages[$filename] = true;
+        } else {
             // Use a basic stream context to mimic a browser if Google blocks simple file_get_contents
             $options = ["http" => ["header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"]];
             $context = stream_context_create($options);
@@ -303,6 +368,10 @@ function sideloadImages(&$dom) {
 
             if ($imgData) {
                 file_put_contents($savePath, $imgData);
+                $imageStats['new']++;
+                $writtenImages[$filename] = true;
+            } else {
+                $imageStats['failed']++;
             }
         }
 
