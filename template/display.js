@@ -5,7 +5,8 @@
  */
 
 $(document).ready(function() {
-    var pageURL = $(location).attr("href").match(/\/([a-z\-]+\.html)#?/) [1];
+    var match = $(location).attr("href").match(/\/([a-z0-9\-]+\.html)(?:[#?]|$)/);
+    var pageURL = match ? match[1] : 'index.html';
     console.log(pageURL);
     var li = $('nav a[href="' + pageURL + '"]').closest('li').attr("id","selected");
     li.addClass('selected');
