@@ -1,0 +1,155 @@
+/*
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+*/
+/*
+    Created on : 10 Jan 2019, 2:31:44 PM
+    Author     : Philip
+*/
+
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap');
+
+body {
+    margin:0px;
+    font-family: "Open Sans", Sans-serif;
+    font-size: 12pt;
+}
+
+nav a {
+    color:inherit;
+    text-decoration: none;
+    display: block;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+nav ul.menu1 > li {
+    font-weight: bold;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+nav ul.menu2 > li{
+    font-size: 0.9em;
+    padding-left: 20px;
+    width: 230px;
+}
+nav ul.menu3 li{
+    font-size: 0.8em;
+    padding-left: 40px;
+    width: 210px;
+}
+ul.menu2 > li, ul.menu3 > li {
+    padding-bottom: 10px;
+}
+.selected {
+    background: #aad6f2;
+}
+
+article h1 {
+    margin-top:0 !important;
+    padding-top: 12pt !important;
+}
+
+@media screen and (max-width: 639px) {
+    header {
+        display:block;
+        background-color: rgb(86,163,217);
+        width: 100%;
+        max-height: 150px;
+        margin: 0;
+        -webkit-box-shadow: 0px 0px 30px 10px rgba(0,0,0,0.25);
+        -moz-box-shadow: 0px 0px 30px 10px rgba(0,0,0,0.25);
+        box-shadow: 0px 0px 30px 10px rgba(0,0,0,0.25);
+    }
+
+    header img {
+        max-width: 100%;
+        max-height: 150px;
+    }
+
+    article {
+        padding: 8px;
+        max-width: 750px;
+    }
+
+    nav li:not(.selected){
+        display: none;
+    }
+    ul.selected > li {
+        display: inherit;
+    }
+    nav ul.menu1 > li {
+        width: 100%;
+    }
+}
+
+@media screen and (min-width: 640px){
+    header {
+        position: fixed;
+        top:0;
+        left:0;
+        height: 150px;
+        background-color: rgb(86,163,217);
+        width: 100%;
+
+        -webkit-box-shadow: 0px 0px 30px 10px rgba(0,0,0,0.25);
+        -moz-box-shadow: 0px 0px 30px 10px rgba(0,0,0,0.25);
+        box-shadow: 0px 0px 30px 10px rgba(0,0,0,0.25);
+    }
+
+    header img {
+        height: 100%;
+    }
+
+    nav {
+        position: fixed;
+        overflow-y: scroll;
+        height: calc( 100vh - 150px );
+        top: 150px;
+        left: 0;
+    }
+
+    nav ul.menu1 > li.notselected {
+        margin-top: 5px;
+        color: #606060;
+    }
+    nav ul.menu1 > li {
+        width: 250px;
+    }
+    nav ul.menu2 {
+        display:none;
+    }
+    nav ul.menu3 {
+        display:none;
+    }
+    nav ul.selected {
+        display:block;
+    }
+
+    article {
+        position: fixed;
+        overflow-y: scroll;
+        height: calc( 100vh - 150px );
+        top: 150px;
+        left: 300px;
+        width: calc( 100% - 300px );
+        padding-right: calc( 100% - 750px );
+    }
+
+    #bodycontainer {
+        max-width: 750px;
+    }
+}
+
+@media print {
+    header, nav {
+        display: none;
+    }
+}
