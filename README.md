@@ -1,6 +1,6 @@
-# ADAM Documentation Generator
+# ADAM Documentor
 
-Generates the [ADAM](https://adam.co.za) help site at [help.adam.co.za](https://help.adam.co.za) from a published Google Doc.
+Generate a static site from a published Google Doc.
 
 ## How it works
 
@@ -23,7 +23,7 @@ A single PHP script (`src/generate.php`) drives the build:
 ## Installation
 
 ```bash
-git clone https://github.com/phinor/adam-documentation.git
+git clone https://github.com/phinor/adam-documentor.git
 cd adam-documentation
 composer install
 cp .env.example .env
